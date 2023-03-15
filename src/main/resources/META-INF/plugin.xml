@@ -1,0 +1,39 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>fun.zwang.FunCodeRefactor</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>FunCodeRefactor</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="support@mycompany.com" url="https://www.yourcompany.com">Wang Zhuo</vendor>
+
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description>如何开发一款idea插件来实现代码重构呢？老代码使用的开发框架中实体类都是以DataObject的形式储存的，这种类型的使用方法类似于HashMap，get和set方法通过String类型的key访问其中的元素，
+        value可以是任意Object类型。在翻新时，我们将为每种类型创建对应的实体类。举个例子，原代码中的创建一个新的Object类似于DataObjectUtil.crewateDataObject("com.example.MyType"); 而新版
+        中则是new MyType();各个属性我们也会使用正常的get、set方法直接读取和储存。目前我的做法是用python实现了一个处理程序，根据字符串正则匹配来修改对应的调用，但是这样有一些缺点，
+        例如在匹配get函数时，我并不知道当前对象的类型，导致误伤了HashMap的正常函数调用。</description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <localInspection
+                language="JAVA"
+                displayName="My Code Refactoring Inspection"
+                groupDisplayName="My Code Refactoring"
+                groupName="MyCodeRefactoring"
+                enabledByDefault="true"
+                level="WARNING"
+                implementationClass="fun.zwang.funcoderefactor.MyCodeInspection"/>
+    </extensions>
+</idea-plugin>
