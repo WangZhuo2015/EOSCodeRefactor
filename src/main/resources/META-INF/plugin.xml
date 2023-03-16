@@ -36,4 +36,11 @@
                 level="WARNING"
                 implementationClass="fun.zwang.funcoderefactor.MyCodeInspection"/>
     </extensions>
+
+    <actions>
+        <group id="MyPlugin.SampleMenu" text="EOS Refactor" description="A menu for EOS Refactor Plugin">
+            <add-to-group group-id="MainMenu" anchor="last" />
+            <action id="MyPlugin.RefactorDataObject" class="fun.zwang.funcoderefactor.RefactorDataObjectAction" text="重构DataObject" description="Refactor DataObject creation, get, and set methods in the current file" />
+        </group>
+    </actions>
 </idea-plugin>

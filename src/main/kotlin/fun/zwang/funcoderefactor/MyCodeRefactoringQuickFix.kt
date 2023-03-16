@@ -3,10 +3,7 @@ package `fun`.zwang.funcoderefactor
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiLiteralExpression
-import com.intellij.psi.PsiMethodCallExpression
-import com.intellij.psi.PsiReferenceExpression
+import com.intellij.psi.*
 import java.util.*
 
 // This class implements a quick fix for refactoring DataObject getter and setter methods.
@@ -20,8 +17,12 @@ class MyCodeRefactoringQuickFix : LocalQuickFix {
 
     // Applies the fix to the given problem descriptor.
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        applyFix(project, descriptor.psiElement)
+    }
+
+    private fun applyFix(project: Project, element: PsiElement) {
         // Get the method call expression for the getter or setter.
-        val expression = descriptor.psiElement as? PsiMethodCallExpression ?: return
+        val expression = element as? PsiMethodCallExpression ?: return
         // Get the method name (get or set).
         val methodName = expression.methodExpression.referenceName
         // Get the qualifier expression.

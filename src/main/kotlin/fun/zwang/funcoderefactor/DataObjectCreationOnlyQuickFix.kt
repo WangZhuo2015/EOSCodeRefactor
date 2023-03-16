@@ -4,6 +4,7 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLocalVariable
 import com.intellij.psi.PsiMethodCallExpression
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.extractClassNameFromDataObjectCreationStatement
@@ -19,8 +20,12 @@ class DataObjectCreationOnlyQuickFix : LocalQuickFix {
 
     // Applies the fix to the given problem descriptor.
     override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
+        applyFix(project, descriptor.psiElement)
+    }
+
+    fun applyFix(project: Project, element: PsiElement){
         // Get the variable containing the DataObject creation statement.
-        val variable = descriptor.psiElement as? PsiLocalVariable ?: return
+        val variable = element as? PsiLocalVariable ?: return
         // Get the initializer expression for the variable.
         val initializer = variable.initializer as? PsiMethodCallExpression ?: return
         // Extract the class name from the DataObject creation statement.
