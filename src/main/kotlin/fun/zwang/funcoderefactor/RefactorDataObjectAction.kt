@@ -27,20 +27,18 @@ class RefactorDataObjectAction : AnAction() {
     }
 
     private fun refactorDataObjects(project: Project, element: PsiElement) {
-        if (element is PsiMethodCallExpression && ExpressionUtils.isDataObjectCreation(element)) {
-            // 应用 DataObject 创建和 get/set 方法的重构逻辑
-            // 此处添加重构逻辑
-            dataObjectCreationAndGetSetQuickFix.applyFix(project, element)
+        val dataObjectCreationExpressions = mutableListOf<PsiMethodCallExpression>()
+        // 寻找所有的 DataObject 创建表达式
+        fun findAllDataObjects(element: PsiElement) {
+            if (element is PsiMethodCallExpression && ExpressionUtils.isDataObjectCreation(element)) {
+                dataObjectCreationExpressions.add(element)
+            }
+            element.children.forEach { findAllDataObjects(it) }
         }
-
-        if (element is PsiMethodCallExpression && ExpressionUtils.isDataObjectGetterOrSetter(element)) {
-            // 应用 get/set 方法的重构逻辑
-            // 此处添加重构逻辑
-        }
-
-        // 遍历子元素
-        for (child in element.children) {
-            refactorDataObjects(project, child)
+        findAllDataObjects(element)
+        // 应用 DataObject 创建和 get/set 方法的重构逻辑
+        dataObjectCreationExpressions.forEach {
+            dataObjectCreationAndGetSetQuickFix.applyFix(project, it.parent)
         }
     }
 }

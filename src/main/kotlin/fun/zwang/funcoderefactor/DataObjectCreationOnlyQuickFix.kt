@@ -2,6 +2,7 @@ package `fun`.zwang.funcoderefactor
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
@@ -34,10 +35,11 @@ class DataObjectCreationOnlyQuickFix : LocalQuickFix {
         // Replace the old DataObjectUtil.createDataObject() call with a new instance of the actual entity class.
         val elementFactory = JavaPsiFacade.getElementFactory(project)
         val newExpression = elementFactory.createExpressionFromText("new $className()", null)
-        initializer.replace(newExpression)
-
-        // Update the variable type to match the actual entity class.
         val newType = elementFactory.createTypeByFQClassName(className, variable.resolveScope)
-        variable.typeElement.replace(elementFactory.createTypeElement(newType))
+        WriteCommandAction.runWriteCommandAction(project) {
+            initializer.replace(newExpression)
+            // Update the variable type to match the actual entity class.
+            variable.typeElement.replace(elementFactory.createTypeElement(newType))
+        }
     }
 }

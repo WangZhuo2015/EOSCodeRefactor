@@ -2,6 +2,7 @@ package `fun`.zwang.funcoderefactor
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import java.util.*
@@ -39,7 +40,9 @@ class MyCodeRefactoringQuickFix : LocalQuickFix {
                     expression
                 )
                 // Replace the old expression with the new expression.
-                expression.replace(newExpression)
+                WriteCommandAction.runWriteCommandAction(project) {
+                    expression.replace(newExpression)
+                }
             }
 
             "get" -> {
