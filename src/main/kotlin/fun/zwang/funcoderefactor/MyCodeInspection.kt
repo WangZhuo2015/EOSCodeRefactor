@@ -3,8 +3,8 @@ package `fun`.zwang.funcoderefactor
 import com.intellij.codeInspection.*
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.intellij.psi.codeStyle.CodeStyleManager
-import org.jetbrains.annotations.NotNull
+import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.PsiTreeUtil
 
 
 class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
@@ -31,36 +31,6 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
         }
     }
 
-    private fun isDataObjectGetterOrSetter(expression: PsiMethodCallExpression): Boolean {
-        val method = expression.resolveMethod() ?: return false
-        val methodName = method.name
-
-        if (!methodName.startsWith("get") && !methodName.startsWith("set")) return false
-
-        val qualifier = expression.methodExpression.qualifierExpression as? PsiReferenceExpression ?: return false
-        val variable = qualifier.resolve() as? PsiVariable ?: return false
-        val variableTypeName = variable.type.presentableText
-
-        // 如果类型为DataObject或新实体类名称
-        return variableTypeName == "DataObject" || variableTypeName == extractClassNameFromDataObjectQualifiedName(variableTypeName)
-    }
-
-    private fun extractClassNameFromDataObjectQualifiedName(qualifiedName: String): String? {
-        val className = qualifiedName.split(".").last()
-        return className.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-    }
-
-    private fun hasStringLiteralArgument(expression: PsiMethodCallExpression, referenceName: String): Boolean {
-        val arguments = expression.argumentList.expressions
-        val firstArgument = arguments.getOrNull(0)
-
-        return when (referenceName) {
-            "set" -> arguments.size == 2 && firstArgument is PsiLiteralExpression
-            "get" -> arguments.size == 1 && firstArgument is PsiLiteralExpression
-            else -> false
-        }
-    }
-
     private fun isDataObjectCreation(expression: PsiMethodCallExpression): Boolean {
         val methodExpression = expression.methodExpression
         val referenceName = methodExpression.referenceName
@@ -69,7 +39,7 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
 
 
     class MyCodeRefactoringQuickFix : LocalQuickFix {
-        override fun getName(): String = "Refactor code"
+        override fun getName(): String = "重构DataObject的get/set函数"
 
         override fun getFamilyName(): String = name
 
@@ -90,13 +60,6 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
                     val newExpression = factory.createExpressionFromText("${qualifier.text}.get${propertyName.capitalize()}()", expression)
                     expression.replace(newExpression)
                 }
-                "createDataObject" -> {
-                    val className = extractClassName(expression) ?: return
-                    val shortClassName = className.substring(className.lastIndexOf('.') + 1)
-                    val variableName = shortClassName.decapitalize()
-                    val newExpression = factory.createExpressionFromText("$shortClassName $variableName = new $shortClassName()", expression)
-                    expression.replace(newExpression)
-                }
             }
         }
 
@@ -106,15 +69,11 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
             return keyArgument.value as? String
         }
 
-        private fun extractClassName(expression: PsiMethodCallExpression): String? {
-            val argumentList = expression.argumentList
-            val classNameArgument = argumentList.expressions.getOrNull(0) as? PsiLiteralExpression ?: return null
-            return classNameArgument.value as? String
-        }
     }
+
     class DataObjectCreationQuickFix : LocalQuickFix {
         override fun getFamilyName(): String {
-            return "Refactor DataObject creation"
+            return "重构DataObject,使用实际的实体类"
         }
 
         override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
@@ -122,24 +81,67 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
             val initializer = variable.initializer as? PsiMethodCallExpression ?: return
             val className = extractClassName(initializer) ?: return
 
-            // 用新创建的实例替换旧的 DataObjectUtil.createDataObject() 调用
-            val elementFactory = JavaPsiFacade.getElementFactory(project)
-            val newExpression = elementFactory.createExpressionFromText("new $className()", null)
-            initializer.replace(newExpression)
+            val refactoringQuickFix = MyCodeRefactoringQuickFix()
+            val references = ReferencesSearch.search(variable).findAll()
+            for (reference in references) {
+                val methodCallExpression = PsiTreeUtil.getParentOfType(reference.element, PsiMethodCallExpression::class.java)
+                if (methodCallExpression != null) {
+                    if (isDataObjectGetterOrSetter(methodCallExpression, allowedTypes = listOf("DataObject", className))) {
+                        val newDescriptor = ProblemDescriptorBase(
+                            methodCallExpression,
+                            methodCallExpression,
+                            descriptor.descriptionTemplate,
+                            arrayOf(refactoringQuickFix),
+                            ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                            false,
+                            null,
+                            true,
+                            false
+                        )
+                        refactoringQuickFix.applyFix(project, newDescriptor)
+                    }
+                }
+                // 用新创建的实例替换旧的 DataObjectUtil.createDataObject() 调用
+                val elementFactory = JavaPsiFacade.getElementFactory(project)
+                val newExpression = elementFactory.createExpressionFromText("new $className()", null)
+                initializer.replace(newExpression)
 
-            // 更新变量类型
-            val newType = elementFactory.createTypeByFQClassName(className, variable.resolveScope)
-            variable.typeElement?.replace(elementFactory.createTypeElement(newType))
+                // 更新变量类型
+                val newType = elementFactory.createTypeByFQClassName(className, variable.resolveScope)
+                variable.typeElement.replace(elementFactory.createTypeElement(newType))
+            }
         }
+
         private fun extractClassName(expression: PsiMethodCallExpression): String? {
             val argumentList = expression.argumentList
             if (argumentList.expressions.size != 1) return null
 
-            val classNameArg = argumentList.expressions[0] as? PsiLiteralExpression ?: return null
-            val fullClassName = classNameArg.value as? String ?: return null
+            val classNameArg = argumentList.expressions[0]
+            val fullClassName = when (classNameArg) {
+                is PsiLiteralExpression -> classNameArg.value as? String
+                is PsiReferenceExpression -> convertToCamelCase(classNameArg.referenceName ?: return null)
+                else -> return null
+            } ?: return null
 
             val className = fullClassName.split(".").last()
             return className.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
         }
+
+        private fun convertToCamelCase(input: String): String {
+            return input.split("_").joinToString("") { it.lowercase().replaceFirstChar { ch -> ch.uppercase() } }
+        }
     }
+}
+
+fun isDataObjectGetterOrSetter(expression: PsiMethodCallExpression, allowedTypes: List<String> = listOf("DataObject")): Boolean {
+    val method = (expression.methodExpression.resolve() as? PsiMethod) ?: return false
+    val methodName = method.name
+
+    if (!methodName.startsWith("get") && !methodName.startsWith("set")) return false
+
+    val qualifier = expression.methodExpression.qualifierExpression as? PsiReferenceExpression ?: return false
+    val variable = qualifier.resolve() as? PsiVariable ?: return false
+    val variableTypeName = variable.type.presentableText
+
+    return variableTypeName in allowedTypes
 }
