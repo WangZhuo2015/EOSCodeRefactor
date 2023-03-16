@@ -17,6 +17,7 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
                             expression, "Refactor to typed method", MyCodeRefactoringQuickFix()
                         )
                     }
+
                     isDataObjectCreation(expression) -> {
                         val parent = expression.parent
                         if (parent is PsiLocalVariable) {
@@ -52,12 +53,19 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
             when (methodName) {
                 "set" -> {
                     val propertyName = extractPropertyName(expression) ?: return
-                    val newExpression = factory.createExpressionFromText("${qualifier.text}.set${propertyName.capitalize()}(${expression.argumentList.expressions[1].text})", expression)
+                    val newExpression = factory.createExpressionFromText(
+                        "${qualifier.text}.set${propertyName.capitalize()}(${expression.argumentList.expressions[1].text})",
+                        expression
+                    )
                     expression.replace(newExpression)
                 }
+
                 "get" -> {
                     val propertyName = extractPropertyName(expression) ?: return
-                    val newExpression = factory.createExpressionFromText("${qualifier.text}.get${propertyName.capitalize()}()", expression)
+                    val newExpression = factory.createExpressionFromText(
+                        "${qualifier.text}.get${propertyName.capitalize()}()",
+                        expression
+                    )
                     expression.replace(newExpression)
                 }
             }
@@ -84,22 +92,23 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
             val refactoringQuickFix = MyCodeRefactoringQuickFix()
             val references = ReferencesSearch.search(variable).findAll()
             for (reference in references) {
-                val methodCallExpression = PsiTreeUtil.getParentOfType(reference.element, PsiMethodCallExpression::class.java)
+                val methodCallExpression =
+                    PsiTreeUtil.getParentOfType(reference.element, PsiMethodCallExpression::class.java)
                 if (methodCallExpression != null) {
-                    if (isDataObjectGetterOrSetter(methodCallExpression, allowedTypes = listOf("DataObject", className))) {
-                        val newDescriptor = ProblemDescriptorBase(
-                            methodCallExpression,
-                            methodCallExpression,
-                            descriptor.descriptionTemplate,
-                            arrayOf(refactoringQuickFix),
-                            ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-                            false,
-                            null,
-                            true,
-                            false
-                        )
-                        refactoringQuickFix.applyFix(project, newDescriptor)
-                    }
+//                    if (isDataObjectGetterOrSetter(methodCallExpression, allowedTypes = listOf("DataObject", className))) {
+                    val newDescriptor = ProblemDescriptorBase(
+                        methodCallExpression,
+                        methodCallExpression,
+                        descriptor.descriptionTemplate,
+                        arrayOf(refactoringQuickFix),
+                        ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+                        false,
+                        null,
+                        true,
+                        false
+                    )
+                    refactoringQuickFix.applyFix(project, newDescriptor)
+//                    }
                 }
                 // 用新创建的实例替换旧的 DataObjectUtil.createDataObject() 调用
                 val elementFactory = JavaPsiFacade.getElementFactory(project)
@@ -133,7 +142,10 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
     }
 }
 
-fun isDataObjectGetterOrSetter(expression: PsiMethodCallExpression, allowedTypes: List<String> = listOf("DataObject")): Boolean {
+fun isDataObjectGetterOrSetter(
+    expression: PsiMethodCallExpression,
+    allowedTypes: List<String> = listOf("DataObject")
+): Boolean {
     val method = (expression.methodExpression.resolve() as? PsiMethod) ?: return false
     val methodName = method.name
 
