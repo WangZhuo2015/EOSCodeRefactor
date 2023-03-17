@@ -2,10 +2,7 @@ package `fun`.zwang.funcoderefactor
 
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
-import com.intellij.psi.JavaElementVisitor
-import com.intellij.psi.PsiElementVisitor
-import com.intellij.psi.PsiLocalVariable
-import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.*
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectCreation
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectGetterOrSetter
 
@@ -35,14 +32,38 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
                         if (parent is PsiLocalVariable) {
                             // Register a problem with a quick fix for refactoring only the object creation.
                             holder.registerProblem(
-                                parent, "Refactor to typed object creation", DataObjectCreationOnlyQuickFix()
+                                parent, "Only refactor to typed object creation", DataObjectCreationOnlyQuickFix()
                             )
                             // Register a problem with a quick fix for refactoring both the object creation and getter/setter methods.
                             holder.registerProblem(
-                                parent, "Refactor to typed object creation", DataObjectCreationAndGetSetQuickFix()
+                                parent, "Refactor to typed object creation and fix get set method calls", DataObjectCreationAndGetSetQuickFix()
                             )
                         }
                     }
+                }
+            }
+
+            override fun visitMethod(method: PsiMethod) {
+                super.visitMethod(method)
+                method.parameterList.parameters
+                    .filter { it.type.presentableText == "DataObject" }
+                    .forEach { holder.registerProblem(it, "Refactor DataObject parameter to typed parameter", DataObjectParameterRefactoringQuickFix()) }
+            }
+
+
+
+            override fun visitLocalVariable(variable: PsiLocalVariable) {
+                super.visitLocalVariable(variable)
+                val initializer = variable.initializer as? PsiMethodCallExpression ?: return
+                val method = (initializer.methodExpression.resolve() as? PsiMethod) ?: return
+                val returnType = method.returnType?.presentableText ?: return
+                if (returnType == "DataObject") {
+                    holder.registerProblem(
+                        variable, "Refactor to typed object creation", DataObjectCreationOnlyQuickFix()
+                    )
+                    holder.registerProblem(
+                        variable, "Refactor to typed object creation", DataObjectCreationAndGetSetQuickFix()
+                    )
                 }
             }
         }

@@ -21,7 +21,7 @@ class MyCodeRefactoringQuickFix : LocalQuickFix {
         applyFix(project, descriptor.psiElement)
     }
 
-    private fun applyFix(project: Project, element: PsiElement) {
+    fun applyFix(project: Project, element: PsiElement) {
         // Get the method call expression for the getter or setter.
         val expression = element as? PsiMethodCallExpression ?: return
         // Get the method name (get or set).
@@ -53,7 +53,9 @@ class MyCodeRefactoringQuickFix : LocalQuickFix {
                     expression
                 )
                 // Replace the old expression with the new expression.
-                expression.replace(newExpression)
+                WriteCommandAction.runWriteCommandAction(project) {
+                    expression.replace(newExpression)
+                }
             }
         }
     }

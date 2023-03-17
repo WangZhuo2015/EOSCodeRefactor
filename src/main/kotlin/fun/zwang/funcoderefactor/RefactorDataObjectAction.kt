@@ -3,42 +3,57 @@ package `fun`.zwang.funcoderefactor
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiJavaFile
-import com.intellij.psi.PsiMethodCallExpression
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
+import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectCreation
+import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectGetterOrSetter
 
 class RefactorDataObjectAction : AnAction() {
-
     private val dataObjectCreationAndGetSetQuickFix = DataObjectCreationAndGetSetQuickFix()
+    private val myCodeRefactoringQuickFix = MyCodeRefactoringQuickFix()
+    private val dataObjectParameterRefactoringQuickFix = DataObjectParameterRefactoringQuickFix()
 
     override fun actionPerformed(e: AnActionEvent) {
         // 获取当前项目和编辑器
-        val project = e.project
+        val project = e.project ?: return
         val editor = e.getRequiredData(CommonDataKeys.EDITOR)
 
         // 获取当前文件
-        val psiFile = PsiDocumentManager.getInstance(project!!).getPsiFile(editor.document)
-        if (psiFile is PsiJavaFile) {
-            // 在这里添加寻找所有DataObject对象并重构的逻辑
-            refactorDataObjects(project, psiFile)
-        }
+        val psiFile = PsiDocumentManager.getInstance(project).getPsiFile(editor.document) as? PsiJavaFile ?: return
+
+        refactorDataObjects(project, psiFile)
     }
 
-    private fun refactorDataObjects(project: Project, element: PsiElement) {
-        val dataObjectCreationExpressions = mutableListOf<PsiMethodCallExpression>()
-        // 寻找所有的 DataObject 创建表达式
-        fun findAllDataObjects(element: PsiElement) {
-            if (element is PsiMethodCallExpression && ExpressionUtils.isDataObjectCreation(element)) {
-                dataObjectCreationExpressions.add(element)
+    private fun refactorDataObjects(project: Project, psiFile: PsiJavaFile) {
+        val methodCallExpressions = PsiTreeUtil.collectElementsOfType(psiFile, PsiMethodCallExpression::class.java)
+
+        println("Problem list:")
+        methodCallExpressions.filter(::isDataObjectGetterOrSetter).forEach {
+            println(it.text)
+            WriteCommandAction.runWriteCommandAction(project) {
+                myCodeRefactoringQuickFix.applyFix(project, it)
             }
-            element.children.forEach { findAllDataObjects(it) }
         }
-        findAllDataObjects(element)
-        // 应用 DataObject 创建和 get/set 方法的重构逻辑
-        dataObjectCreationExpressions.forEach {
-            dataObjectCreationAndGetSetQuickFix.applyFix(project, it.parent)
+
+        val localVariables = PsiTreeUtil.collectElementsOfType(psiFile, PsiLocalVariable::class.java)
+        localVariables.filter(::isDataObjectCreationVariable).forEach {
+            println(it.text)
+            dataObjectCreationAndGetSetQuickFix.applyFix(project, it)
         }
+
+        val methods = PsiTreeUtil.collectElementsOfType(psiFile, PsiMethod::class.java)
+        methods.flatMap { it.parameterList.parameters.toList() }
+            .filter { it.type.presentableText == "DataObject" }
+            .forEach {
+                println(it.text)
+                dataObjectParameterRefactoringQuickFix.applyFix(project, it)
+            }
+    }
+
+    private fun isDataObjectCreationVariable(variable: PsiLocalVariable): Boolean {
+        val initializer = variable.initializer as? PsiMethodCallExpression ?: return false
+        return isDataObjectCreation(initializer)
     }
 }

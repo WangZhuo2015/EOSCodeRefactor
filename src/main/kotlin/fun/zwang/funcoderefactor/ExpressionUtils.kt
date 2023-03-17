@@ -39,6 +39,16 @@ class ExpressionUtils {
             return referenceName == "createDataObject"
         }
 
+        fun isDataObjectAssignment(expression: PsiAssignmentExpression): Boolean {
+            val leftExpression = expression.lExpression
+            val rightExpression = expression.rExpression
+            if (leftExpression is PsiReferenceExpression && rightExpression is PsiMethodCallExpression) {
+                val rightValueType = leftExpression.type?.presentableText
+                return rightValueType == "DataObject"
+            }
+            return false
+        }
+
         // Extracts the class name from a DataObject creation statement.
         @JvmStatic
         fun extractClassNameFromDataObjectCreationStatement(expression: PsiMethodCallExpression): String? {
@@ -56,8 +66,8 @@ class ExpressionUtils {
         }
 
         // Converts an input string to CamelCase format.
-        private fun convertToCamelCase(input: String): String {
-            return input.split("_").joinToString("") { it.lowercase().replaceFirstChar { ch -> ch.uppercase() } }
+        fun convertToCamelCase(input: String): String {
+            return input.split("_").joinToString("") { it.replaceFirstChar { ch -> ch.uppercase() } }
         }
     }
 }
