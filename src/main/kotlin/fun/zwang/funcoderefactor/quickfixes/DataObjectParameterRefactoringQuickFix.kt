@@ -1,4 +1,4 @@
-package `fun`.zwang.funcoderefactor
+package `fun`.zwang.funcoderefactor.quickfixes
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
@@ -8,6 +8,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
+import `fun`.zwang.funcoderefactor.ExpressionUtils
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectGetterOrSetter
 
 class DataObjectParameterRefactoringQuickFix : LocalQuickFix {

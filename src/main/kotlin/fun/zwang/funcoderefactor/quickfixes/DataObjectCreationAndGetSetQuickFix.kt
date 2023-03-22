@@ -1,4 +1,4 @@
-package `fun`.zwang.funcoderefactor
+package `fun`.zwang.funcoderefactor.quickfixes
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
@@ -10,6 +10,7 @@ import com.intellij.psi.PsiLocalVariable
 import com.intellij.psi.PsiMethodCallExpression
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.PsiTreeUtil
+import `fun`.zwang.funcoderefactor.ExpressionUtils
 
 // This class implements a quick fix for refactoring DataObject creation statements
 // and updating all the getter and setter method calls to use the actual entity class.

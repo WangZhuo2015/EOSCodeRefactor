@@ -1,4 +1,4 @@
-package `fun`.zwang.funcoderefactor
+package `fun`.zwang.funcoderefactor.quickfixes
 
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor

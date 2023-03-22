@@ -5,6 +5,8 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.*
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectCreation
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectGetterOrSetter
+import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isLoggerStatement
+import `fun`.zwang.funcoderefactor.quickfixes.*
 
 
 // This class represents a custom code inspection tool for refactoring DataObject instances
@@ -16,6 +18,7 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
         return object : JavaElementVisitor() {
             // This method is called when a method call expression is encountered in the inspected code.
             override fun visitMethodCallExpression(expression: PsiMethodCallExpression) {
+                println(expression.text)
                 // Check if the current method call expression is a DataObject getter/setter or a DataObject creation.
                 when {
                     // If it is a DataObject getter/setter, register a problem with a quick fix for refactoring the getter/setter method.
@@ -39,6 +42,11 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
                                 parent, "Refactor to typed object creation and fix get set method calls", DataObjectCreationAndGetSetQuickFix()
                             )
                         }
+                    }
+
+                    isLoggerStatement(expression) -> {
+                        println(expression.text)
+                        holder.registerProblem(expression,"Use placeholders in logger", LogStringInsertionQuickFix())
                     }
                 }
             }

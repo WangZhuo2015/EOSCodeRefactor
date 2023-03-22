@@ -9,6 +9,9 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectCreation
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectGetterOrSetter
+import `fun`.zwang.funcoderefactor.quickfixes.DataObjectCreationAndGetSetQuickFix
+import `fun`.zwang.funcoderefactor.quickfixes.DataObjectParameterRefactoringQuickFix
+import `fun`.zwang.funcoderefactor.quickfixes.MyCodeRefactoringQuickFix
 
 class RefactorDataObjectAction : AnAction() {
     private val dataObjectCreationAndGetSetQuickFix = DataObjectCreationAndGetSetQuickFix()
