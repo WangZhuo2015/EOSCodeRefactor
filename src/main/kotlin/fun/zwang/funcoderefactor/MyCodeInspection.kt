@@ -1,6 +1,7 @@
 package `fun`.zwang.funcoderefactor
 
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool
+import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.*
 import `fun`.zwang.funcoderefactor.ExpressionUtils.Companion.isDataObjectCreation
@@ -45,8 +46,10 @@ class MyCodeInspection : AbstractBaseJavaLocalInspectionTool() {
                     }
 
                     isLoggerStatement(expression) -> {
-                        println(expression.text)
-                        holder.registerProblem(expression,"Use placeholders in logger", LogStringInsertionQuickFix())
+                        val singleFix = LogStringInsertionQuickFix()
+                        val batchFix = LogStringInsertionBatchQuickFix()
+                        val fixes = arrayOf<LocalQuickFix>(singleFix, batchFix)
+                        holder.registerProblem(expression, "Use placeholders in logger", *fixes)
                     }
                 }
             }

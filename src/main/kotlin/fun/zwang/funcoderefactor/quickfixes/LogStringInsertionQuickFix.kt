@@ -5,7 +5,7 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 
-class LogStringInsertionQuickFix : LocalQuickFix {
+open class LogStringInsertionQuickFix : LocalQuickFix {
 
     override fun getFamilyName(): String {
         return "重构日志字符串插值"
@@ -15,7 +15,7 @@ class LogStringInsertionQuickFix : LocalQuickFix {
         applyFix(project, descriptor.psiElement)
     }
 
-private fun applyFix(project: Project, element: PsiElement) {
+fun applyFix(project: Project, element: PsiElement) {
     val methodCallExpression = element as PsiMethodCallExpression
     val methodName = methodCallExpression.methodExpression.referenceName ?: return
     val arguments = methodCallExpression.argumentList.expressions
